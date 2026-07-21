@@ -282,9 +282,19 @@ elif page == "Comparaison des modèles":
 
     with col_b:
         st.subheader("Tableau comparatif")
-        style = model_comparison.style.background_gradient(
-            subset=["F1"], cmap="RdYlGn"
-        ).format({"Precision": "{:.2f}", "Recall": "{:.2f}", "F1": "{:.2f}"})
+
+        def couleur_f1(val):
+            # Degrade rouge -> vert sans dependance a matplotlib
+            f1_min, f1_max = model_comparison["F1"].min(), model_comparison["F1"].max()
+            ratio = (val - f1_min) / (f1_max - f1_min) if f1_max > f1_min else 0
+            rouge = int(255 - ratio * 105)
+            vert = int(100 + ratio * 130)
+            return f"background-color: rgb({rouge},{vert},100)"
+
+        style = (
+            model_comparison.style.map(couleur_f1, subset=["F1"])
+            .format({"Precision": "{:.2f}", "Recall": "{:.2f}", "F1": "{:.2f}"})
+        )
         st.dataframe(style, use_container_width=True, hide_index=True)
 
         meilleur = model_comparison.loc[model_comparison["F1"].idxmax()]
@@ -418,7 +428,7 @@ elif page == "Comptes signalés":
         st.dataframe(
             df_filtre[colonnes_affichees]
             .head(500)
-            .style.applymap(couleur_action, subset=["Action_Priorite"])
+            .style.map(couleur_action, subset=["Action_Priorite"])
             .format({"IF_SCORE": "{:.2f}"}),
             use_container_width=True,
             hide_index=True,
